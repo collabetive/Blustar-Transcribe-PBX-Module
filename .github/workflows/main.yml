@@ -20,7 +20,7 @@ jobs:
       - name: Read version from module.xml
         id: vars
         run: |
-          VERSION=$(grep -oP '(?<=<version>)[^<]+' src/module.xml)
+          VERSION=$(xmllint --xpath 'string(/module/version)' src/module.xml)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
           echo "archive=${MODULE_NAME}-${VERSION}.tgz" >> "$GITHUB_OUTPUT"
