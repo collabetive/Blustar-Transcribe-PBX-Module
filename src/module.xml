@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<module>
+    <rawname>transcription</rawname>
+    <name>Transcription</name>
+    <version>1.0.0</version>
+    <publisher>BluStar</publisher>
+    <license>Proprietary</license>
+    <licenselink>https://blustar.com</licenselink>
+    <category>Admin</category>
+    <description>Automatically uploads call recordings to the BluStar transcription server after each call ends via HTTP.</description>
+    <type>setup</type>
+    <supported>
+        <version>17.0</version>
+    </supported>
+    <depends>
+        <version>17.0.0</version>
+        <phpversion>8.1</phpversion>
+        <module>core ge 17.0</module>
+    </depends>
+    <menuitems>
+        <transcription>Transcription</transcription>
+    </menuitems>
+</module>
