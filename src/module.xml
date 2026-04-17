@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <module>
-    <rawname>transcription</rawname>
-    <name>Transcription</name>
+    <rawname>BluStar Transcription</rawname>
+    <name>BluStar Transcription</name>
     <version>1.0.0</version>
-    <publisher>BluStar</publisher>
+    <publisher>The Collabetive</publisher>
     <license>Proprietary</license>
     <licenselink>https://blustar.com</licenselink>
     <category>Admin</category>
@@ -18,6 +18,6 @@
         <module>core ge 17.0</module>
     </depends>
     <menuitems>
-        <transcription>Transcription</transcription>
+        <transcription>BluStar Transcription</transcription>
     </menuitems>
 </module>
