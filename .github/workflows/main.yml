@@ -2,7 +2,7 @@ name: Build, Sign, and Release
 
 on:
   push:
-    tags: ['v*']
+    branches: [release]
 
 permissions:
   contents: write
@@ -17,30 +17,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Stage module directory
-        run: |
-          # rename src/ to the module's rawname so the tarball has the right top-level dir
-          mv src "${MODULE_NAME}"
-
       - name: Read version from module.xml
         id: vars
         run: |
-          VERSION=$(grep -oP '(?<=<version>)[^<]+' ${MODULE_NAME}/module.xml)
+          VERSION=$(grep -oP '(?<=<version>)[^<]+' src/module.xml)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
           echo "archive=${MODULE_NAME}-${VERSION}.tgz" >> "$GITHUB_OUTPUT"
 
-      - name: Verify tag matches module.xml version
+      - name: Check if release already exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
-          XML_VERSION="${{ steps.vars.outputs.version }}"
-          if [ "$TAG_VERSION" != "$XML_VERSION" ]; then
-            echo "::error::Tag version ($TAG_VERSION) does not match module.xml version ($XML_VERSION)"
+          if gh release view "${{ steps.vars.outputs.tag }}" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            echo "::error::Release ${{ steps.vars.outputs.tag }} already exists. Bump <version> in module.xml before merging to release."
             exit 1
           fi
 
+      - name: Stage module directory
+        run: mv src "${MODULE_NAME}"
+
       - name: Create tarball
-        run: |
-          tar -czvf "${{ steps.vars.outputs.archive }}" "${MODULE_NAME}/"
+        run: tar -czvf "${{ steps.vars.outputs.archive }}" "${MODULE_NAME}/"
 
       - name: Verify tarball structure
         run: |
@@ -71,7 +69,9 @@ jobs:
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.vars.outputs.tag }}
           name: BluStar Transcription ${{ steps.vars.outputs.version }}
+          target_commitish: ${{ github.sha }}
           files: |
             ${{ steps.vars.outputs.archive }}
             ${{ steps.vars.outputs.archive }}.asc
