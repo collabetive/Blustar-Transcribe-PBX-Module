@@ -30,7 +30,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if gh release view "${{ steps.vars.outputs.tag }}" --repo "${{ github.repository }}" >/dev/null 2>&1; then
-            echo "::error::Release ${{ steps.vars.outputs.tag }} already exists. Bump <version> in module.xml before merging to release."
+            echo "::error::Release ${{ steps.vars.outputs.tag }} already exists. Bump <version> in src/module.xml before merging to release."
             exit 1
           fi
 
@@ -60,7 +60,8 @@ jobs:
         run: |
           gpg --batch --yes --pinentry-mode loopback \
               --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
-              --detach-sign --armor \
+              --detach-sign \
+              --output "${{ steps.vars.outputs.archive }}.gpg" \
               "${{ steps.vars.outputs.archive }}"
 
       - name: Export public key
@@ -74,17 +75,18 @@ jobs:
           target_commitish: ${{ github.sha }}
           files: |
             ${{ steps.vars.outputs.archive }}
-            ${{ steps.vars.outputs.archive }}.asc
+            ${{ steps.vars.outputs.archive }}.gpg
             public.asc
           body: |
             # BluStar Transcription ${{ steps.vars.outputs.version }}
 
             ## Installation
-            fwconsole ma downloadinstall https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${{ steps.vars.outputs.archive }}
+            
+            fwconsole ma downloadinstall https://github.com/${{ github.repository }}/releases/download/${{ steps.vars.outputs.tag }}/${{ steps.vars.outputs.archive }}
             fwconsole reload
             ## Verification (optional but recommended)
-            wget https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/public.asc
-            wget https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${{ steps.vars.outputs.archive }}
-            wget https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${{ steps.vars.outputs.archive }}.asc
+            wget https://github.com/${{ github.repository }}/releases/download/${{ steps.vars.outputs.tag }}/public.asc
+            wget https://github.com/${{ github.repository }}/releases/download/${{ steps.vars.outputs.tag }}/${{ steps.vars.outputs.archive }}
+            wget https://github.com/${{ github.repository }}/releases/download/${{ steps.vars.outputs.tag }}/${{ steps.vars.outputs.archive }}.gpg
             gpg --import public.asc
-            gpg --verify ${{ steps.vars.outputs.archive }}.asc ${{ steps.vars.outputs.archive }}      
+            gpg --verify ${{ steps.vars.outputs.archive }}.gpg ${{ steps.vars.outputs.archive }}     
