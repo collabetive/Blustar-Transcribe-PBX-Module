@@ -1,0 +1,90 @@
+name: Build, Sign, and Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+env:
+  MODULE_NAME: blustartranscription
+
+jobs:
+  build-sign-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Stage module directory
+        run: |
+          # rename src/ to the module's rawname so the tarball has the right top-level dir
+          mv src "${MODULE_NAME}"
+
+      - name: Read version from module.xml
+        id: vars
+        run: |
+          VERSION=$(grep -oP '(?<=<version>)[^<]+' ${MODULE_NAME}/module.xml)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "archive=${MODULE_NAME}-${VERSION}.tgz" >> "$GITHUB_OUTPUT"
+
+      - name: Verify tag matches module.xml version
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          XML_VERSION="${{ steps.vars.outputs.version }}"
+          if [ "$TAG_VERSION" != "$XML_VERSION" ]; then
+            echo "::error::Tag version ($TAG_VERSION) does not match module.xml version ($XML_VERSION)"
+            exit 1
+          fi
+
+      - name: Create tarball
+        run: |
+          tar -czvf "${{ steps.vars.outputs.archive }}" "${MODULE_NAME}/"
+
+      - name: Verify tarball structure
+        run: |
+          echo "Archive contents (first 10 entries):"
+          tar -tzf "${{ steps.vars.outputs.archive }}" | head -10
+          TOP=$(tar -tzf "${{ steps.vars.outputs.archive }}" | head -1 | cut -d/ -f1)
+          if [ "$TOP" != "$MODULE_NAME" ]; then
+            echo "::error::Top-level directory is '$TOP', expected '$MODULE_NAME'"
+            exit 1
+          fi
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Sign tarball
+        run: |
+          gpg --batch --yes --pinentry-mode loopback \
+              --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
+              --detach-sign --armor \
+              "${{ steps.vars.outputs.archive }}"
+
+      - name: Export public key
+        run: gpg --armor --export "${{ secrets.GPG_KEY_ID }}" > public.asc
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: BluStar Transcription ${{ steps.vars.outputs.version }}
+          files: |
+            ${{ steps.vars.outputs.archive }}
+            ${{ steps.vars.outputs.archive }}.asc
+            public.asc
+          body: |
+            # BluStar Transcription ${{ steps.vars.outputs.version }}
+
+            ## Installation
+            fwconsole ma downloadinstall https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${{ steps.vars.outputs.archive }}
+            fwconsole reload
+            ## Verification (optional but recommended)
+            wget https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/public.asc
+            wget https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${{ steps.vars.outputs.archive }}
+            wget https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${{ steps.vars.outputs.archive }}.asc
+            gpg --import public.asc
+            gpg --verify ${{ steps.vars.outputs.archive }}.asc ${{ steps.vars.outputs.archive }}      
