@@ -4,7 +4,7 @@ if (!defined('FREEPBX_IS_AUTH')) {
     die('No direct script access allowed');
 }
 
-$module = \FreePBX::Transcription();
+$module = \FreePBX::Blustartranscription();
 
 // Determine which tab to show (whitelist valid values)
 $tab = in_array($_GET['tab'] ?? '', ['settings', 'logs'], true) ? $_GET['tab'] : 'settings';
@@ -14,10 +14,10 @@ $tab = in_array($_GET['tab'] ?? '', ['settings', 'logs'], true) ? $_GET['tab'] :
 <div id="toolbar-all">
     <ul class="nav nav-tabs" role="tablist">
         <li role="presentation" class="<?= $tab === 'settings' ? 'active' : '' ?>">
-            <a href="?display=transcription&tab=settings">Settings</a>
+            <a href="?display=blustartranscription&tab=settings">Settings</a>
         </li>
         <li role="presentation" class="<?= $tab === 'logs' ? 'active' : '' ?>">
-            <a href="?display=transcription&tab=logs">Transfer Logs</a>
+            <a href="?display=blustartranscription&tab=logs">Transfer Logs</a>
         </li>
     </ul>
 </div>
@@ -35,4 +35,4 @@ $tab = in_array($_GET['tab'] ?? '', ['settings', 'logs'], true) ? $_GET['tab'] :
     ?>
 </div>
 
-<script src="modules/transcription/assets/js/transcription.js"></script>
+<script src="modules/blustartranscription/assets/js/transcription.js"></script>

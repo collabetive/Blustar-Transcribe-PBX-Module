@@ -11,7 +11,7 @@ $logs = $module->getLogs($page, 50, $statusFilter);
         <div class="row" style="margin-bottom: 15px;">
             <div class="col-md-6">
                 <form method="get" class="form-inline">
-                    <input type="hidden" name="display" value="transcription">
+                    <input type="hidden" name="display" value="blustartranscription">
                     <input type="hidden" name="tab" value="logs">
                     <div class="form-group">
                         <label for="status-filter">Filter by status:</label>
@@ -76,7 +76,7 @@ $logs = $module->getLogs($page, 50, $statusFilter);
                 <ul class="pagination">
                     <?php for ($i = 1; $i <= $logs['pages']; $i++): ?>
                         <li class="<?= $i === $logs['page'] ? 'active' : '' ?>">
-                            <a href="?display=transcription&tab=logs&p=<?= $i ?>&status=<?= urlencode($statusFilter) ?>"><?= $i ?></a>
+                            <a href="?display=blustartranscription&tab=logs&p=<?= $i ?>&status=<?= urlencode($statusFilter) ?>"><?= $i ?></a>
                         </li>
                     <?php endfor; ?>
                 </ul>

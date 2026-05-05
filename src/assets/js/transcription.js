@@ -27,7 +27,7 @@
     }
 
     // FreePBX AJAX endpoint for this module
-    var ajaxUrl = 'ajax.php?module=transcription&command=';
+    var ajaxUrl = 'ajax.php?module=blustartranscription&command=';
 
     // AJAX helper
     function runAjax(command, btn, callback) {
