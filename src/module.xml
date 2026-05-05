@@ -18,6 +18,6 @@
         <module>core ge 17.0</module>
     </depends>
     <menuitems>
-        <transcription>BluStar Transcription</transcription>
+        <blustartranscription>BluStar Transcription</blustartranscription>
     </menuitems>
 </module>

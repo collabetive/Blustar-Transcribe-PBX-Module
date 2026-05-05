@@ -14,4 +14,4 @@ $status   = $argv[2];
 $errorMsg = $argv[3] ?? '';
 
 require '/etc/freepbx.conf';
-\FreePBX::Transcription()->addLog($filename, $status, $errorMsg);
+\FreePBX::Blustartranscription()->addLog($filename, $status, $errorMsg);

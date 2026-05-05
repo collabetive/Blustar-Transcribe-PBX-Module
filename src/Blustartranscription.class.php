@@ -2,7 +2,7 @@
 
 namespace FreePBX\modules;
 
-class Transcription extends \FreePBX_Helpers implements \BMO
+class Blustartranscription extends \FreePBX_Helpers implements \BMO
 {
     private const CONF_FILE = '/etc/asterisk/transcription.conf';
 
