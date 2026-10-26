@@ -1,5 +1,9 @@
 <?php
 
+if (!defined('FREEPBX_IS_AUTH')) {
+    die('No direct script access allowed');
+}
+
 $page = max(1, (int) ($_GET['p'] ?? 1));
 $statusFilter = $_GET['status'] ?? '';
 $logs = $module->getLogs($page, 50, $statusFilter);

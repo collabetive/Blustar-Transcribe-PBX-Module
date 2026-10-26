@@ -30,6 +30,9 @@ class Blustartranscription extends \FreePBX_Helpers implements \BMO
     {
     }
 
+    /** Error message from the last failed save in this request, shown by the view. */
+    private ?string $saveError = null;
+
     public function doConfigPageInit($page)
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -37,8 +40,39 @@ class Blustartranscription extends \FreePBX_Helpers implements \BMO
         }
 
         if (isset($_POST['action']) && $_POST['action'] === 'save_settings') {
-            $this->saveSettings($_POST);
+            if (!$this->verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+                $this->saveError = 'Security token missing or expired. Please reload the page and try again.';
+                return;
+            }
+            try {
+                $this->saveSettings($_POST);
+            } catch (\InvalidArgumentException $e) {
+                $this->saveError = $e->getMessage();
+            }
         }
+    }
+
+    public function getSaveError(): ?string
+    {
+        return $this->saveError;
+    }
+
+    // --- CSRF protection ---
+
+    private const CSRF_SESSION_KEY = 'blustartranscription_csrf';
+
+    public function getCsrfToken(): string
+    {
+        if (empty($_SESSION[self::CSRF_SESSION_KEY])) {
+            $_SESSION[self::CSRF_SESSION_KEY] = bin2hex(random_bytes(32));
+        }
+        return $_SESSION[self::CSRF_SESSION_KEY];
+    }
+
+    public function verifyCsrfToken(string $token): bool
+    {
+        $expected = $_SESSION[self::CSRF_SESSION_KEY] ?? '';
+        return $expected !== '' && $token !== '' && hash_equals($expected, $token);
     }
 
     // --- AJAX (FreePBX BMO pattern) ---
@@ -56,6 +90,14 @@ class Blustartranscription extends \FreePBX_Helpers implements \BMO
     public function ajaxHandler()
     {
         $command = $_REQUEST['command'] ?? '';
+
+        // State-changing / outbound-request commands must be POSTed with a valid token
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            return ['success' => false, 'message' => 'Method not allowed'];
+        }
+        if (!$this->verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+            return ['success' => false, 'message' => 'Security token missing or expired. Please reload the page and try again.'];
+        }
 
         switch ($command) {
             case 'test_api':
@@ -90,12 +132,22 @@ class Blustartranscription extends \FreePBX_Helpers implements \BMO
         return $settings;
     }
 
+    /**
+     * Validate and persist settings.
+     *
+     * @throws \InvalidArgumentException on invalid input (nothing is written)
+     */
     public function saveSettings(array $post): bool
     {
+        $clean = [];
         foreach (self::DEFAULTS as $key => $default) {
-            if (isset($post[$key])) {
-                $this->setConfig($key, trim($post[$key]));
+            if (isset($post[$key]) && is_string($post[$key])) {
+                $clean[$key] = $this->validateSetting($key, trim($post[$key]));
             }
+        }
+
+        foreach ($clean as $key => $value) {
+            $this->setConfig($key, $value);
         }
 
         // Radio buttons always send a value, but normalize to 'true'/'false'
@@ -105,6 +157,52 @@ class Blustartranscription extends \FreePBX_Helpers implements \BMO
         $this->writeConfFile();
         needreload();
         return true;
+    }
+
+    /**
+     * Validate a single setting value. Values end up in a shell-sourced config
+     * file and in URLs, so they are restricted to safe character sets.
+     */
+    private function validateSetting(string $key, string $value): string
+    {
+        switch ($key) {
+            case 'server_host':
+                if ($value === '') {
+                    throw new \InvalidArgumentException('Server host is required');
+                }
+                $isIp = filter_var($value, FILTER_VALIDATE_IP) !== false;
+                $isHost = strlen($value) <= 253
+                    && preg_match('/^(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.(?!-)[A-Za-z0-9-]{1,63}(?<!-))*$/', $value) === 1;
+                if (!$isIp && !$isHost) {
+                    throw new \InvalidArgumentException('Server host must be a valid hostname or IP address');
+                }
+                return $value;
+
+            case 'server_port':
+                if (preg_match('/^\d{1,5}$/', $value) !== 1 || (int) $value < 1 || (int) $value > 65535) {
+                    throw new \InvalidArgumentException('Server port must be a number between 1 and 65535');
+                }
+                return (string) (int) $value;
+
+            case 'log_retention_days':
+                if (preg_match('/^\d{1,3}$/', $value) !== 1 || (int) $value < 1 || (int) $value > 365) {
+                    throw new \InvalidArgumentException('Log retention must be between 1 and 365 days');
+                }
+                return (string) (int) $value;
+
+            case 'api_key':
+                // Sent as an HTTP header; reject control characters (header injection) and absurd lengths
+                if (preg_match('/[\x00-\x1F\x7F]/', $value) === 1 || strlen($value) > 512) {
+                    throw new \InvalidArgumentException('API key contains invalid characters');
+                }
+                return $value;
+
+            case 'enabled':
+                return $value === 'true' ? 'true' : 'false';
+
+            default:
+                return $value;
+        }
     }
 
     public function writeConfFile(): void

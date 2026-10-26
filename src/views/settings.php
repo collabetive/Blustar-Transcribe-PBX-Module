@@ -1,5 +1,9 @@
 <?php
 
+if (!defined('FREEPBX_IS_AUTH')) {
+    die('No direct script access allowed');
+}
+
 $settings = $module->getAllSettings();
 $enabled = $settings['enabled'] === 'true';
 
@@ -7,6 +11,7 @@ $enabled = $settings['enabled'] === 'true';
 
 <form method="post" id="transcription-settings-form">
     <input type="hidden" name="action" value="save_settings">
+    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($module->getCsrfToken()) ?>">
 
     <div class="section" data-id="general">
         <div class="section-title">

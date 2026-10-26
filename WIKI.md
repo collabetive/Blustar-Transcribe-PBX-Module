@@ -356,7 +356,9 @@ fwconsole reload
 - **Transport:** HTTP today. Deploy on a trusted network or front the server with a TLS-terminating proxy and update the URL prefix in `transcription-upload.sh` and `Transcription::testApiConnection()` if you need HTTPS.
 - **Shell injection:** The bash uploader takes the recording path as `$1` and only ever quotes it. The PHP-side log helper takes `argv` directly and calls a parameterized DB insert — there is no shell interpolation of recording filenames into PHP.
 - **SQL injection:** All queries against `transcription_log` use prepared statements. The `LIMIT`/`OFFSET` values are integer-cast (PDO doesn't accept them as bound parameters in this driver setup).
-- **Direct page access:** `page.transcription.php` aborts unless `FREEPBX_IS_AUTH` is defined, which FreePBX sets after authenticating the admin session.
+- **Direct page access:** Every web-reachable PHP file (`page.blustartranscription.php`, both views, `install.php`, `uninstall.php`) aborts unless `FREEPBX_IS_AUTH` is defined, which FreePBX sets after authenticating the admin session.
+- **CSRF:** The settings form carries a per-session token (`csrf_token`) that `doConfigPageInit()` verifies with `hash_equals()` before saving. The `test_api` and `purge_logs` AJAX commands only accept `POST` and require the same token; `transcription.js` reads it from the `data-csrf` attribute on the page container.
+- **Input validation:** `saveSettings()` rejects a host that is not a valid hostname/IP, a port outside 1–65535, retention outside 1–365 days, and an API key containing control characters. Nothing is written if any value fails, and the error is shown above the form. This keeps hostile values out of the shell-sourced `transcription.conf` and the outbound `X-API-KEY` header.
 - **GPG-signed releases:** Every official tarball ships with a detached `.asc` signature; verify before installing on production PBXs (instructions live in the GitHub release body).
 
 ---
@@ -365,7 +367,7 @@ fwconsole reload
 
 Version is the single source of truth defined in `src/module.xml` under `<version>`. The release workflow refuses to publish if the corresponding `v<version>` tag already exists, so bumping `module.xml` is a hard prerequisite for cutting a new release.
 
-Current version: **1.0.0**.
+Current version: **1.0.3**.
 
 ---
 
