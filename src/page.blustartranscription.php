@@ -22,7 +22,10 @@ $tab = in_array($_GET['tab'] ?? '', ['settings', 'logs'], true) ? $_GET['tab'] :
     </ul>
 </div>
 
-<div class="tab-content display">
+<div class="tab-content display" id="blustartranscription-page" data-csrf="<?= htmlspecialchars($module->getCsrfToken()) ?>">
+    <?php if ($module->getSaveError() !== null): ?>
+        <div class="alert alert-danger"><?= htmlspecialchars($module->getSaveError()) ?></div>
+    <?php endif; ?>
     <?php
     switch ($tab) {
         case 'logs':

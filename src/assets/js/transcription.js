@@ -27,7 +27,12 @@
     }
 
     // FreePBX AJAX endpoint for this module
-    var ajaxUrl = 'ajax.php?module=blustartranscription&command=';
+    var ajaxUrl = 'ajax.php?module=blustartranscription';
+
+    function csrfToken() {
+        var page = document.getElementById('blustartranscription-page');
+        return page ? (page.getAttribute('data-csrf') || '') : '';
+    }
 
     // AJAX helper
     function runAjax(command, btn, callback) {
@@ -36,7 +41,9 @@
         btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Testing...';
 
         var xhr = new XMLHttpRequest();
-        xhr.open('GET', ajaxUrl + command);
+        xhr.open('POST', ajaxUrl);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
         xhr.onload = function () {
             btn.disabled = false;
             btn.innerHTML = originalHtml;
@@ -53,7 +60,7 @@
             btn.innerHTML = originalHtml;
             showResult(false, 'Network error — could not reach FreePBX server');
         };
-        xhr.send();
+        xhr.send('command=' + encodeURIComponent(command) + '&csrf_token=' + encodeURIComponent(csrfToken()));
     }
 
     // Client-side validation before testing

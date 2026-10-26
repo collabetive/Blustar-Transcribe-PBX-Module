@@ -1,5 +1,9 @@
 <?php
 
+if (!defined('FREEPBX_IS_AUTH')) {
+    die('No direct script access allowed');
+}
+
 global $db;
 
 // Remove our MIXMON_POST line from globals_custom.conf
